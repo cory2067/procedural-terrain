@@ -10,18 +10,15 @@ controls.lookSpeed = 0.1;
 
 // Create a renderer and attach it to the DOM
 var renderer = new THREE.WebGLRenderer();
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.BasicShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-/*
-var geometry = new THREE.BoxGeometry(1, 1, 1);
-var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-var cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-
-cube.rotation.x += 0.01;
-cube.rotation.y += 0.01;
-*/
+// color, intensity, max distance. decay
+var light = new THREE.PointLight(0xffffff, 5, 0, 1);
+light.position.set(-50, 10, 0);
+scene.add(light);
 
 // width, height, width segments, height segments
 var geometry = new THREE.PlaneBufferGeometry(50, 50, 10, 10);
@@ -35,8 +32,9 @@ for (var i = 1; i < vertices.length; i += 3) {
     vertices[i] = (i % 2);
 }
 
-// todo: use some real textures here instead of the basic uniform coloring
-var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
+// MeshBasicMaterial just is a constant color
+// var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
+var material = new THREE.MeshPhongMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
 var land = new THREE.Mesh(geometry, material);
 scene.add(land);
 
