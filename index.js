@@ -1,6 +1,6 @@
 // Width in heightmap points
-var WIDTH = 12;
-var DEPTH = 12;
+var HEIGHTMAP_SCALE = 4;
+var SIZE = Math.pow(2, HEIGHTMAP_SCALE) + 1;
 
 // How many units of distance per point?
 // (lower for fine resolution)
@@ -25,45 +25,38 @@ renderer.shadowMap.type = THREE.BasicShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// color, intensity, max distance. decay
-var light = new THREE.PointLight(0xffffff, 5, 0, 1);
-light.position.set(-50, 10, 0);
+// color, intensity
+var light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(50, 30, 0);
 scene.add(light);
 
 // Initialize our landscape as a flat plane
 // depth, width, depth segments, width segments
-var geometry = new THREE.PlaneBufferGeometry(DEPTH * LENGTH_PER_POINT, 
-                                             WIDTH * LENGTH_PER_POINT,
-                                             DEPTH - 1, WIDTH - 1);
+var geometry = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
+                                             SIZE * LENGTH_PER_POINT,
+                                             SIZE - 1, SIZE - 1);
 geometry.rotateX(-Math.PI/2); // rotate to lie on the ground
 
-function getHeightmap(width, depth) {
-    var map = [];
-
-    for (var z=0; z < depth; z++) {
-        var row = [];
-        for (var x=0; x < width; x++) {
-            row.push(Math.random() * 3);
-        }
-        map.push(row);
-    }
-
-    return map;
-}
+var waterGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
+                                             SIZE * LENGTH_PER_POINT,
+                                             SIZE - 1, SIZE - 1);
+waterGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
+waterGeo.translate(0,6,0); // translate upwards
 
 // Given a BufferGeometry, apply the heightmap
 // Modifies the geometry object, returns nothing
 function applyHeightmap(geometry, heightmap) {
     var vertices = geometry.attributes.position.array;
+    console.log(geometry.attributes.position);
     for (var i = 0; i < vertices.length/3; i++ ) {
-        var x = Math.floor(i / DEPTH);
-        var z = i % DEPTH; 
+        var x = Math.floor(i / SIZE);
+        var z = i % SIZE;
 
         vertices[i*3 + 1] = heightmap[z][x];
     }
 }
 
-applyHeightmap(geometry, getHeightmap(WIDTH, DEPTH));
+applyHeightmap(geometry, heightMap(HEIGHTMAP_SCALE));
 
 // MeshBasicMaterial just is a constant color
 // var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
@@ -73,10 +66,16 @@ texture.wrapT = THREE.RepeatWrapping;
 texture.repeat.set(12, 12);
 
 var material = new THREE.MeshPhongMaterial({/*color: 0xcc1177,*/ map: texture});
+var waterMaterial = new THREE.MeshPhongMaterial({color: 0x0066ff});
 var land = new THREE.Mesh(geometry, material);
+var water = new THREE.Mesh(waterGeo, waterMaterial);
+light.target = land;
 scene.add(land);
+scene.add(water);
 
-camera.position.y = 5;
+camera.position.x = -50;
+camera.position.y = 30;
+camera.position.z = 0;
 
 function animate() {
     requestAnimationFrame(animate);
