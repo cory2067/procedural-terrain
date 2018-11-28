@@ -67,7 +67,12 @@ applyHeightmap(geometry, getHeightmap(WIDTH, DEPTH));
 
 // MeshBasicMaterial just is a constant color
 // var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
-var material = new THREE.MeshPhongMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
+var texture = new THREE.TextureLoader().load("textures/stone.jpg");
+texture.wrapS = THREE.RepeatWrapping;
+texture.wrapT = THREE.RepeatWrapping;
+texture.repeat.set(12, 12);
+
+var material = new THREE.MeshPhongMaterial({/*color: 0xcc1177,*/ map: texture});
 var land = new THREE.Mesh(geometry, material);
 scene.add(land);
 
