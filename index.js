@@ -57,6 +57,7 @@ function applyHeightmap(geometry, heightmap) {
 }
 
 applyHeightmap(geometry, heightMap(HEIGHTMAP_SCALE));
+geometry.computeVertexNormals();
 
 // MeshBasicMaterial just is a constant color
 // var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
