@@ -27,7 +27,7 @@ function diamondSquare(heights, size) {
   }
 
   var half = size / 2;
-  var roughness = 0.2;
+  var roughness = 0.5;
   var scale = roughness * size;
   var max = heights.length;
 

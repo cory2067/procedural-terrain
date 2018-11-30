@@ -66,8 +66,8 @@ texture.wrapS = THREE.RepeatWrapping;
 texture.wrapT = THREE.RepeatWrapping;
 texture.repeat.set(12, 12);
 
-var material = new THREE.MeshPhongMaterial({/*color: 0xcc1177,*/ map: texture});
-var waterMaterial = new THREE.MeshPhongMaterial({color: 0x0066ff});
+var material = new THREE.MeshPhongMaterial({reflectivity: 0.2, map: texture});
+var waterMaterial = new THREE.MeshPhongMaterial({reflectivity: 0.3, color: 0x0066ff});
 var land = new THREE.Mesh(geometry, material);
 var water = new THREE.Mesh(waterGeo, waterMaterial);
 light.target = land;
