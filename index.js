@@ -1,5 +1,5 @@
 // Width in heightmap points
-var HEIGHTMAP_SCALE = 4;
+var HEIGHTMAP_SCALE = 5;
 var SIZE = Math.pow(2, HEIGHTMAP_SCALE) + 1;
 
 // How many units of distance per point?
@@ -10,6 +10,11 @@ var LENGTH_PER_POINT = 4;
 
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0xbfd1e5);
+
+// Apply fog to hide chunks we haven't loaded yet
+var fogColor = new THREE.Color(0xdddddd);
+scene.background = fogColor;
+scene.fog = new THREE.Fog(fogColor, 75, 132);
 
 // Parameters: field of view (degrees), aspect ratio, near/far clip planes
 var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
@@ -30,24 +35,40 @@ var light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(50, 30, 0);
 scene.add(light);
 
-// Initialize our landscape as a flat plane
-// depth, width, depth segments, width segments
-var geometry = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
-                                             SIZE * LENGTH_PER_POINT,
-                                             SIZE - 1, SIZE - 1);
-geometry.rotateX(-Math.PI/2); // rotate to lie on the ground
 
 var waterGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
                                              SIZE * LENGTH_PER_POINT,
                                              SIZE - 1, SIZE - 1);
+
 waterGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
-waterGeo.translate(0,6,0); // translate upwards
+waterGeo.translate(0,8,0); // translate upwards
+    
+// Initialize our landscape as a flat plane
+// depth, width, depth segments, width segments
+var baseLandGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
+                                                SIZE * LENGTH_PER_POINT,
+                                                SIZE - 1, SIZE - 1);
+baseLandGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
+
+// MeshBasicMaterial just is a constant color
+// var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
+var texture = new THREE.TextureLoader().load("textures/stone.jpg");
+texture.wrapS = THREE.RepeatWrapping;
+texture.wrapT = THREE.RepeatWrapping;
+texture.repeat.set(36, 36);
+
+var bumpTex = new THREE.TextureLoader().load("textures/stonebump2.jpg");
+bumpTex.wrapS = THREE.RepeatWrapping;
+bumpTex.wrapT = THREE.RepeatWrapping;
+texture.repeat.set(12, 12);
+
+var waterMaterial = new THREE.MeshPhongMaterial({reflectivity: 0.3, color: 0x0066ff});
+var material = new THREE.MeshPhongMaterial({reflectivity: 0.2, map: texture, bumpMap: bumpTex, bumpScale: 0.1});
 
 // Given a BufferGeometry, apply the heightmap
 // Modifies the geometry object, returns nothing
 function applyHeightmap(geometry, heightmap) {
     var vertices = geometry.attributes.position.array;
-    console.log(geometry.attributes.position);
     for (var i = 0; i < vertices.length/3; i++ ) {
         var x = Math.floor(i / SIZE);
         var z = i % SIZE;
@@ -56,36 +77,90 @@ function applyHeightmap(geometry, heightmap) {
     }
 }
 
-applyHeightmap(geometry, heightMap(HEIGHTMAP_SCALE));
-geometry.computeVertexNormals();
+var chunks = {};
 
-// MeshBasicMaterial just is a constant color
-// var material = new THREE.MeshBasicMaterial( {color: 0xcc1177, side: THREE.DoubleSide} );
-var texture = new THREE.TextureLoader().load("textures/stone.jpg");
-texture.wrapS = THREE.RepeatWrapping;
-texture.wrapT = THREE.RepeatWrapping;
-texture.repeat.set(12, 12);
 
-var bumpTex = new THREE.TextureLoader().load("textures/stonebump2.jpg");
-bumpTex.wrapS = THREE.RepeatWrapping;
-bumpTex.wrapT = THREE.RepeatWrapping;
-texture.repeat.set(6, 6);
+function chunkId(chunk) {
+    return chunk.x + "," + chunk.z;
+}
 
-var material = new THREE.MeshPhongMaterial({reflectivity: 0.2, map: texture, bumpMap: bumpTex, bumpScale: 0.1});
-var waterMaterial = new THREE.MeshPhongMaterial({reflectivity: 0.3, color: 0x0066ff});
-var land = new THREE.Mesh(geometry, material);
-var water = new THREE.Mesh(waterGeo, waterMaterial);
-light.target = land;
-scene.add(land);
-scene.add(water);
+var CHUNK_SIZE = SIZE * LENGTH_PER_POINT;
+function createChunk(x, z) {
+    var geometry = baseLandGeo.clone();
+    applyHeightmap(geometry, heightMap(HEIGHTMAP_SCALE));
+    geometry.computeVertexNormals();
 
-camera.position.x = -50;
-camera.position.y = 30;
+    var land = new THREE.Mesh(geometry, material);
+    var water = new THREE.Mesh(waterGeo, waterMaterial);
+    
+    land.position.x = x * CHUNK_SIZE;
+    land.position.z = z * CHUNK_SIZE;
+    water.position.x = x * CHUNK_SIZE;
+    water.position.z = z * CHUNK_SIZE;
+
+    var chunk = {
+        land: land,
+        water: water,
+        x: x,
+        z: z,
+    };
+
+    scene.add(chunk.land);
+    scene.add(chunk.water);
+    chunks[chunkId(chunk)] = chunk;
+    console.log("Created chunk at " + chunkId(chunk));
+
+    return chunk;
+}
+
+function deleteChunk(chunk) {
+    scene.remove(chunk.land);
+    scene.remove(chunk.water);
+
+    console.log("Removed chunk at " + chunkId(chunk));
+    delete chunks[chunkId(chunk)];
+}
+
+var chunk = createChunk(0, 0);
+
+camera.position.x = 0;
+camera.position.y = 50;
 camera.position.z = 0;
+
+function updateChunks(pos) {
+    var xind = Math.floor((pos.x + CHUNK_SIZE/2) / CHUNK_SIZE - 0.01);
+    var zind = Math.floor((pos.z + CHUNK_SIZE/2) / CHUNK_SIZE - 0.01);
+
+    var mustExist = [ // 9 surrounding chunks should exist
+        [xind, zind],
+        [xind+1, zind],
+        [xind-1, zind],
+        [xind, zind+1],
+        [xind, zind-1],
+        [xind+1, zind+1],
+        [xind-1, zind+1],
+        [xind+1, zind-1],
+        [xind-1, zind-1],
+    ]
+
+    for (var ind of mustExist) {
+        if (!chunks[ind[0] + "," + ind[1]]) {
+            createChunk(ind[0], ind[1]);
+        }
+    }
+
+    for (var key in chunks) {
+        var chunk = chunks[key];
+        if (Math.abs(chunk.x - xind) > 2 || Math.abs(chunk.z - zind) > 2) {
+            deleteChunk(chunk);
+        }
+    }
+}
 
 function animate() {
     requestAnimationFrame(animate);
     controls.update(clock.getDelta());
+    updateChunks(camera.position);
     renderer.render(scene, camera);
 }
 
