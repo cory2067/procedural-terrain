@@ -9,10 +9,10 @@ var LENGTH_PER_POINT = 4;
 ///////////////////////////////
 
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0xbfd1e5);
+//scene.background = new THREE.Color(0xbfd1e5);
 
 // Apply fog to hide chunks we haven't loaded yet
-var fogColor = new THREE.Color(0xdddddd);
+var fogColor = new THREE.Color(0xbfd1e5);
 scene.background = fogColor;
 scene.fog = new THREE.Fog(fogColor, 75, 132);
 
