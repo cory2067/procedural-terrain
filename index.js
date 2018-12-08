@@ -42,7 +42,7 @@ var waterGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
 
 waterGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
 waterGeo.translate(0,8,0); // translate upwards
-    
+
 // Initialize our landscape as a flat plane
 // depth, width, depth segments, width segments
 var baseLandGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
@@ -85,14 +85,15 @@ function chunkId(chunk) {
 }
 
 var CHUNK_SIZE = SIZE * LENGTH_PER_POINT;
-function createChunk(x, z) {
+function createChunk(x, z, adjChunks) {
     var geometry = baseLandGeo.clone();
-    applyHeightmap(geometry, heightMap(HEIGHTMAP_SCALE));
+    var heightmap = heightMap(HEIGHTMAP_SCALE, x, z, adjChunks);
+    applyHeightmap(geometry, heightmap);
     geometry.computeVertexNormals();
 
     var land = new THREE.Mesh(geometry, material);
     var water = new THREE.Mesh(waterGeo, waterMaterial);
-    
+
     land.position.x = x * CHUNK_SIZE;
     land.position.z = z * CHUNK_SIZE;
     water.position.x = x * CHUNK_SIZE;
@@ -101,6 +102,7 @@ function createChunk(x, z) {
     var chunk = {
         land: land,
         water: water,
+        heightmap: heightmap,
         x: x,
         z: z,
     };
@@ -121,7 +123,7 @@ function deleteChunk(chunk) {
     delete chunks[chunkId(chunk)];
 }
 
-var chunk = createChunk(0, 0);
+var chunk = createChunk(0, 0, []);
 
 camera.position.x = 0;
 camera.position.y = 50;
@@ -145,7 +147,8 @@ function updateChunks(pos) {
 
     for (var ind of mustExist) {
         if (!chunks[ind[0] + "," + ind[1]]) {
-            createChunk(ind[0], ind[1]);
+            var adjChunks = getAdjacentChunks(ind[0], ind[1]);
+            createChunk(ind[0], ind[1], adjChunks);
         }
     }
 
@@ -155,6 +158,22 @@ function updateChunks(pos) {
             deleteChunk(chunk);
         }
     }
+}
+
+function getAdjacentChunks(xInd, zInd) {
+  var adjChunks = [
+    chunks[(xInd-1) + "," + zInd],
+    chunks[(xInd+1) + "," + zInd],
+    chunks[xInd + "," + (zInd-1)],
+    chunks[xInd + "," + (zInd+1)]
+  ];
+  var validChunks = []
+  for (var key in adjChunks) {
+    if (adjChunks[key] != undefined) {
+      validChunks.push(adjChunks[key])
+    }
+  }
+  return validChunks;
 }
 
 function animate() {

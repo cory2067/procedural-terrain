@@ -1,5 +1,5 @@
 // Uses diamond-square recursively for <steps> steps. <steps> must be >= 1.
-function heightMap(steps) {
+function heightMap(steps, globalX, globalZ, adjChunks) {
   var size = Math.pow(2, steps) + 1; // width, height of heightmap array
   var max = size - 1;
   var heights = [];
@@ -17,7 +17,11 @@ function heightMap(steps) {
   heights[max][max] = max / 2;
 
   diamondSquare(heights, max);
-  return heights
+  if (adjChunks.length == 0) {
+    return heights;
+  }
+  var alignedHeights = alignHeightMaps(heights, size, globalX, globalZ, adjChunks);
+  return alignedHeights;
 }
 
 // Performs diamondSquare at the resolution level defined by size
@@ -94,4 +98,66 @@ function adjacentAvg(heights, x, y, dist) {
 
 function randomOffset(scale) {
   return scale * (Math.random() * 2 - 1); // From -scale to scale
+}
+
+function alignHeightMaps(heights, size, globalX, globalZ, adjChunks) {
+  var scaleFactor = 0.75;
+
+  var alignedHeights = [];
+
+  for (var y=0; y < size; y++) { // initializing arrays
+    alignedHeights[y] = [];
+    for (var x=0; x < size; x++) {
+      alignedHeights[y][x] = 0;
+    }
+  }
+
+  // distribute offset to heightmap contents
+  for (var y=0; y < size; y++) {
+    for (var x=0; x < size; x++) {
+      var offset = 0;
+      for (var key in adjChunks) {
+        var adjChunk = adjChunks[key];
+        if (adjChunk.z < globalZ) { // left chunk
+          offset += (adjChunk.heightmap[y][size-1] - heights[y][0]) * scaleFactor**x;
+        }
+        if (adjChunk.z > globalZ) { // right chunk
+          offset += (adjChunk.heightmap[y][0] - heights[y][size-1]) * scaleFactor**(size-1-x);
+        }
+        if (adjChunk.x < globalX) { // top chunk
+          offset += (adjChunk.heightmap[size-1][x] - heights[0][x]) * scaleFactor**y;
+        }
+        if (adjChunk.x > globalX) { // bottom chunk
+          offset += (adjChunk.heightmap[0][x] - heights[size-1][x]) * scaleFactor**(size-1-y);
+        }
+      }
+      alignedHeights[y][x] = heights[y][x] + offset;
+    }
+  }
+
+  // realign edges
+  for (var key in adjChunks) {
+    var adjChunk = adjChunks[key];
+    if (adjChunk.z < globalZ) { // left chunk
+      for (var y=0; y < size; y++) {
+        alignedHeights[y][0] = adjChunk.heightmap[y][size-1];
+      }
+    }
+    if (adjChunk.z > globalZ) { // right chunk
+      for (var y=0; y < size; y++) {
+        alignedHeights[y][size-1] = adjChunk.heightmap[y][0];
+      }
+    }
+    if (adjChunk.x < globalX) { // top chunk
+      for (var x=0; x < size; x++) {
+        alignedHeights[0][x] = adjChunk.heightmap[size-1][x];
+      }
+    }
+    if (adjChunk.x > globalX) { // bottom chunk
+      for (var x=0; x < size; x++) {
+        alignedHeights[size-1][x] = adjChunk.heightmap[0][x];
+      }
+    }
+  }
+  return alignedHeights;
 }
