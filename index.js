@@ -78,6 +78,21 @@ function applyHeightmap(geometry, heightmap) {
     }
 }
 
+// apply the heightmap for a chunk onto the heightmap for the entire render space
+function applyPartialHeightmap(geometry, heightmap, startX, startZ) {
+    var vertices = geometry.attributes.position.array;
+    var totalSize = Math.sqrt(vertices.length / 3);
+    var size = heightmap.length;
+    for (var z = 0; z < size; z++) {
+        for (var x = 0; x < size; x++) {
+            // calulate the right corresponding index in vertices
+            var i = ((x + startX*size)*totalSize + z + startZ*size)*3 + 1;
+            vertices[i] = heightmap[z][x];
+        }
+    }
+
+}
+
 var chunks = {};
 
 
@@ -91,7 +106,7 @@ function createChunk(x, z, adjChunks) {
     // applyHeightmap(geometry, perlinHeightMap(HEIGHTMAP_SCALE, x, z));
 
     var heightmap = heightMap(HEIGHTMAP_SCALE, x, z, adjChunks);
-    applyHeightmap(geometry, heightmap);
+    applyPartialHeightmap(geometry, heightmap, 0, 0);
     geometry.computeVertexNormals();
 
     var waterGeo = waterBaseGeo.clone();
