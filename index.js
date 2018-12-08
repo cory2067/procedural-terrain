@@ -106,16 +106,20 @@ function createChunk(x, z, adjChunks) {
     water.position.x = x * CHUNK_SIZE;
     water.position.z = z * CHUNK_SIZE;
 
+    geometry.translate(x * CHUNK_SIZE, 0, z * CHUNK_SIZE);
+
     var chunk = {
         land: land,
         water: water,
         heightmap: heightmap,
+        geometry: geometry,
+        waterGeo: waterGeo,
         x: x,
         z: z,
     };
 
-    scene.add(chunk.land);
-    scene.add(chunk.water);
+    // scene.add(chunk.land);
+    // scene.add(chunk.water);
     chunks[chunkId(chunk)] = chunk;
     console.log("Created chunk at " + chunkId(chunk));
 
@@ -131,6 +135,7 @@ function deleteChunk(chunk) {
 }
 
 var chunk = createChunk(0, 0, []);
+var landMesh;
 
 camera.position.x = 0;
 camera.position.y = 50;
@@ -152,12 +157,27 @@ function updateChunks(pos) {
         [xind-1, zind-1],
     ]
 
+    var chunkGeos = [];
     for (var ind of mustExist) {
-        if (!chunks[ind[0] + "," + ind[1]]) {
+        var chunk = chunks[ind[0] + "," + ind[1]];
+        if (!chunk) {
             var adjChunks = getAdjacentChunks(ind[0], ind[1]);
-            createChunk(ind[0], ind[1], adjChunks);
+            chunkGeos.push(createChunk(ind[0], ind[1], adjChunks).geometry);
+        } else {
+            chunkGeos.push(chunk.geometry);
         }
     }
+    if (landMesh) {
+        scene.remove(landMesh);
+    }
+
+    
+    console.log(chunkGeos);
+    var landGeo = THREE.BufferGeometryUtils.mergeBufferGeometries(chunkGeos);
+    landGeo.computeVertexNormals();
+    landGeo.normalizeNormals();
+    var landMesh = new THREE.Mesh(landGeo, material);
+    scene.add(landMesh);
 
     for (var key in chunks) {
         var chunk = chunks[key];
