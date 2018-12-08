@@ -35,10 +35,10 @@ var light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(50, 30, 0);
 scene.add(light);
 
-
-var waterBaseGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
-                                             SIZE * LENGTH_PER_POINT,
-                                             SIZE - 1, SIZE - 1);
+var TOTAL_SIZE = SIZE * 3;
+var waterBaseGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
+                                                 TOTAL_SIZE * LENGTH_PER_POINT,
+                                                 TOTAL_SIZE - 1, TOTAL_SIZE - 1);
 
 waterBaseGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
 waterBaseGeo.translate(0,8,0); // translate upwards
@@ -46,9 +46,9 @@ waterBaseGeo.translate(0,8,0); // translate upwards
 
 // Initialize our landscape as a flat plane
 // depth, width, depth segments, width segments
-var baseLandGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
-                                                SIZE * LENGTH_PER_POINT,
-                                                SIZE - 1, SIZE - 1);
+var baseLandGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
+                                                TOTAL_SIZE * LENGTH_PER_POINT,
+                                                TOTAL_SIZE - 1, TOTAL_SIZE - 1);
 baseLandGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
 
 // MeshBasicMaterial just is a constant color
@@ -129,8 +129,8 @@ function createChunk(x, z, adjChunks) {
         z: z,
     };
 
-    scene.add(chunk.land);
-    scene.add(chunk.water);
+    // scene.add(chunk.land);
+    // scene.add(chunk.water);
     chunks[chunkId(chunk)] = chunk;
     console.log("Created chunk at " + chunkId(chunk));
 
@@ -145,15 +145,26 @@ function deleteChunk(chunk) {
     delete chunks[chunkId(chunk)];
 }
 
-var chunk = createChunk(0, 0, []);
+// var chunk = createChunk(0, 0, []);
+var landmesh;
 
 camera.position.x = 0;
 camera.position.y = 50;
 camera.position.z = 0;
 
+var lastX = -1;
+var lastZ = -1;
+
 function updateChunks(pos) {
     var xind = Math.floor((pos.x + CHUNK_SIZE/2) / CHUNK_SIZE - 0.01);
     var zind = Math.floor((pos.z + CHUNK_SIZE/2) / CHUNK_SIZE - 0.01);
+
+    var changedChunk = false;
+    if (lastX != xind || lastZ != zind) {
+        changedChunk = true;
+        lastX = xind;
+        lastZ = zind;
+    }
 
     var mustExist = [ // 9 surrounding chunks should exist
         [xind, zind],
@@ -167,11 +178,28 @@ function updateChunks(pos) {
         [xind-1, zind-1],
     ]
 
+    var landgeo = baseLandGeo.clone();
     for (var ind of mustExist) {
-        if (!chunks[ind[0] + "," + ind[1]]) {
-            var adjChunks = getAdjacentChunks(ind[0], ind[1]);
-            createChunk(ind[0], ind[1], adjChunks);
+        var chunk = chunks[ind[0] + "," + ind[1]];
+        var adjChunks = getAdjacentChunks(ind[0], ind[1]);
+        if (!chunk) {
+            chunk = createChunk(ind[0], ind[1], adjChunks);
         }
+        
+        if (changedChunk) {
+            var x = ind[0] - xind + 1;
+            var z = ind[1] - zind + 1;
+            applyPartialHeightmap(landgeo, chunk.heightmap, z, x);
+        }
+    }
+    
+    if (changedChunk) {
+        if (landmesh) scene.remove(landmesh);
+        landgeo.computeVertexNormals();
+        landmesh = new THREE.Mesh(landgeo, material);
+        landmesh.position.x = xind * CHUNK_SIZE;
+        landmesh.position.z = zind * CHUNK_SIZE;
+        scene.add(landmesh);
     }
 
     for (var key in chunks) {
