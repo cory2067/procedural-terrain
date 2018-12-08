@@ -20,6 +20,39 @@ function heightMap(steps) {
   return heights
 }
 
+function perlinHeightMap(steps, globalZ, globalX, water) {
+  var size = Math.pow(2, steps) + 1; // width, height of heightmap array
+  var heights = [];
+
+  for (z=0; z < size; z++) { // initializing arrays
+    heights[z] = [];
+    for (x=0; x < size; x++) {
+      heights[z][x] = getHeight(globalZ + z/(size - 1), globalX + x/(size - 1), water);
+    }
+  }
+
+  return heights;
+}
+
+function perlin(x, z, amp, freq) {
+  return amp * noise.perlin2(freq * x, freq * z); 
+}
+
+function getHeight(x, z, water) {
+  var out = 0;
+
+  if (!water) {
+    out += perlin(x, z, 80, 1);
+    out += perlin(x, z, 40, 2);
+    out += perlin(x, z, 20, 4);
+    out += perlin(x, z, 10, 7);
+    out += perlin(x, z, 5, 17);
+  } else {
+    out += perlin(x, z, 1, 50);
+  }
+  return out;
+}
+
 // Performs diamondSquare at the resolution level defined by size
 function diamondSquare(heights, size) {
   if (size < 2) {

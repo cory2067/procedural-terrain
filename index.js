@@ -36,12 +36,12 @@ light.position.set(50, 30, 0);
 scene.add(light);
 
 
-var waterGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
+var waterBaseGeo = new THREE.PlaneBufferGeometry(SIZE * LENGTH_PER_POINT,
                                              SIZE * LENGTH_PER_POINT,
                                              SIZE - 1, SIZE - 1);
 
-waterGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
-waterGeo.translate(0,8,0); // translate upwards
+waterBaseGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
+waterBaseGeo.translate(0,5,0); // translate upwards
     
 // Initialize our landscape as a flat plane
 // depth, width, depth segments, width segments
@@ -87,11 +87,15 @@ function chunkId(chunk) {
 var CHUNK_SIZE = SIZE * LENGTH_PER_POINT;
 function createChunk(x, z) {
     var geometry = baseLandGeo.clone();
-    applyHeightmap(geometry, heightMap(HEIGHTMAP_SCALE));
+    applyHeightmap(geometry, perlinHeightMap(HEIGHTMAP_SCALE, x, z));
     geometry.computeVertexNormals();
 
+    var watergeo = waterBaseGeo.clone();
+    applyHeightmap(watergeo, perlinHeightMap(HEIGHTMAP_SCALE, x+6, z+6, true));
+    watergeo.computeVertexNormals();
+
     var land = new THREE.Mesh(geometry, material);
-    var water = new THREE.Mesh(waterGeo, waterMaterial);
+    var water = new THREE.Mesh(watergeo, waterMaterial);
     
     land.position.x = x * CHUNK_SIZE;
     land.position.z = z * CHUNK_SIZE;
@@ -146,6 +150,7 @@ function updateChunks(pos) {
     for (var ind of mustExist) {
         if (!chunks[ind[0] + "," + ind[1]]) {
             createChunk(ind[0], ind[1]);
+            console.log(chunks);
         }
     }
 
