@@ -134,7 +134,7 @@ function randomOffset(scale) {
 }
 
 function alignHeightMaps(heights, size, globalX, globalZ, adjChunks) {
-  var scaleFactor = 0.75;
+  var scaleFactor = 0.9;
 
   var alignedHeights = [];
 
@@ -152,45 +152,21 @@ function alignHeightMaps(heights, size, globalX, globalZ, adjChunks) {
       for (var key in adjChunks) {
         var adjChunk = adjChunks[key];
         if (adjChunk.z < globalZ) { // left chunk
-          offset += (adjChunk.heightmap[y][size-1] - heights[y][0]) * scaleFactor**x;
+          offset += (adjChunk.heightmap[y][size-1] - heights[y][0]) * scaleFactor**(x+1);
         }
         if (adjChunk.z > globalZ) { // right chunk
-          offset += (adjChunk.heightmap[y][0] - heights[y][size-1]) * scaleFactor**(size-1-x);
+          offset += (adjChunk.heightmap[y][0] - heights[y][size-1]) * scaleFactor**(size-x);
         }
         if (adjChunk.x < globalX) { // top chunk
-          offset += (adjChunk.heightmap[size-1][x] - heights[0][x]) * scaleFactor**y;
+          offset += (adjChunk.heightmap[size-1][x] - heights[0][x]) * scaleFactor**(y+1);
         }
         if (adjChunk.x > globalX) { // bottom chunk
-          offset += (adjChunk.heightmap[0][x] - heights[size-1][x]) * scaleFactor**(size-1-y);
+          offset += (adjChunk.heightmap[0][x] - heights[size-1][x]) * scaleFactor**(size-y);
         }
       }
       alignedHeights[y][x] = heights[y][x] + offset;
     }
   }
 
-  // realign edges
-  for (var key in adjChunks) {
-    var adjChunk = adjChunks[key];
-    if (adjChunk.z < globalZ) { // left chunk
-      for (var y=0; y < size; y++) {
-        alignedHeights[y][0] = adjChunk.heightmap[y][size-1];
-      }
-    }
-    if (adjChunk.z > globalZ) { // right chunk
-      for (var y=0; y < size; y++) {
-        alignedHeights[y][size-1] = adjChunk.heightmap[y][0];
-      }
-    }
-    if (adjChunk.x < globalX) { // top chunk
-      for (var x=0; x < size; x++) {
-        alignedHeights[0][x] = adjChunk.heightmap[size-1][x];
-      }
-    }
-    if (adjChunk.x > globalX) { // bottom chunk
-      for (var x=0; x < size; x++) {
-        alignedHeights[size-1][x] = adjChunk.heightmap[0][x];
-      }
-    }
-  }
   return alignedHeights;
 }

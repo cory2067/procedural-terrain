@@ -14,13 +14,13 @@ var scene = new THREE.Scene();
 // Apply fog to hide chunks we haven't loaded yet
 var fogColor = new THREE.Color(0xbfd1e5);
 scene.background = fogColor;
-scene.fog = new THREE.Fog(fogColor, 72, 128);
+//scene.fog = new THREE.Fog(fogColor, 72, 128);
 
 // Parameters: field of view (degrees), aspect ratio, near/far clip planes
 var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
 var controls = new THREE.FirstPersonControls(camera);
 var clock = new THREE.Clock(); // used for computing deltas, for first person speed
-controls.movementSpeed = 10;
+controls.movementSpeed = 100;
 controls.lookSpeed = 0.1;
 
 // Create a renderer and attach it to the DOM
@@ -34,6 +34,9 @@ document.body.appendChild(renderer.domElement);
 var light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(50, 30, 0);
 scene.add(light);
+
+var ambient = new THREE.AmbientLight(0x202020); // soft white light
+scene.add(ambient);
 
 var TOTAL_SIZE = SIZE * 3;
 var baseWaterGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
