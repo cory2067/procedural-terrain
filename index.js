@@ -1,3 +1,5 @@
+var GENERATOR = 1; //0: diamond square, 1: perlin noise
+
 // Width in heightmap points
 var HEIGHTMAP_SCALE = 5;
 var SIZE = Math.pow(2, HEIGHTMAP_SCALE) + 1;
@@ -14,13 +16,13 @@ var scene = new THREE.Scene();
 // Apply fog to hide chunks we haven't loaded yet
 var fogColor = new THREE.Color(0xbfd1e5);
 scene.background = fogColor;
-//scene.fog = new THREE.Fog(fogColor, 72, 128);
+scene.fog = new THREE.Fog(fogColor, 72, 128);
 
 // Parameters: field of view (degrees), aspect ratio, near/far clip planes
 var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
 var controls = new THREE.FirstPersonControls(camera);
 var clock = new THREE.Clock(); // used for computing deltas, for first person speed
-controls.movementSpeed = 100;
+controls.movementSpeed = 10;
 controls.lookSpeed = 0.1;
 
 // Create a renderer and attach it to the DOM
@@ -44,8 +46,6 @@ var baseWaterGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
                                                  TOTAL_SIZE, TOTAL_SIZE);
 
 baseWaterGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
-baseWaterGeo.translate(0,10,0); // translate upwards
-// 0,5,0 for other one
 
 // Initialize our landscape as a flat plane
 // depth, width, depth segments, width segments
@@ -104,7 +104,13 @@ function chunkId(chunk) {
 
 var CHUNK_SIZE = SIZE * LENGTH_PER_POINT;
 function createChunk(x, z, adjChunks) {
-    var heightmap = heightMap(HEIGHTMAP_SCALE, x, z, adjChunks);
+    var heightmap;
+    if (GENERATOR == 0) { // diamond-square
+        heightmap = heightMap(HEIGHTMAP_SCALE, x, z, adjChunks);
+    } else { // perlin noise
+        heightmap = perlinHeightMap(HEIGHTMAP_SCALE, x, z);
+    }
+
     var waterheight = perlinHeightMap(HEIGHTMAP_SCALE, x+9, z+9, true);
 
     var chunk = {
@@ -190,6 +196,7 @@ function updateChunks(pos) {
         watermesh = new THREE.Mesh(watergeo, waterMaterial);
         watermesh.position.x = xind * (CHUNK_SIZE);
         watermesh.position.z = zind * (CHUNK_SIZE);
+        watermesh.position.y = GENERATOR ? 4 : 8;
         scene.add(watermesh);
     }
 

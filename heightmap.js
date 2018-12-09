@@ -31,7 +31,7 @@ function perlinHeightMap(steps, globalZ, globalX, water) {
   for (z=0; z < size; z++) { // initializing arrays
     heights[z] = [];
     for (x=0; x < size; x++) {
-      heights[z][x] = getHeight(globalZ + z/(size - 1), globalX + x/(size - 1), water);
+      heights[z][x] = getHeight(globalZ + z/size, globalX + x/size, water);
     }
   }
 
