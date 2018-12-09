@@ -14,7 +14,7 @@ var scene = new THREE.Scene();
 // Apply fog to hide chunks we haven't loaded yet
 var fogColor = new THREE.Color(0xbfd1e5);
 scene.background = fogColor;
-scene.fog = new THREE.Fog(fogColor, 75, 132);
+scene.fog = new THREE.Fog(fogColor, 72, 128);
 
 // Parameters: field of view (degrees), aspect ratio, near/far clip planes
 var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
@@ -36,19 +36,19 @@ light.position.set(50, 30, 0);
 scene.add(light);
 
 var TOTAL_SIZE = SIZE * 3;
-var waterBaseGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
+var baseWaterGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
                                                  TOTAL_SIZE * LENGTH_PER_POINT,
-                                                 TOTAL_SIZE - 1, TOTAL_SIZE - 1);
+                                                 TOTAL_SIZE, TOTAL_SIZE);
 
-waterBaseGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
-waterBaseGeo.translate(0,8,0); // translate upwards
+baseWaterGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
+baseWaterGeo.translate(0,10,0); // translate upwards
 // 0,5,0 for other one
 
 // Initialize our landscape as a flat plane
 // depth, width, depth segments, width segments
 var baseLandGeo = new THREE.PlaneBufferGeometry(TOTAL_SIZE * LENGTH_PER_POINT,
                                                 TOTAL_SIZE * LENGTH_PER_POINT,
-                                                TOTAL_SIZE - 1, TOTAL_SIZE - 1);
+                                                TOTAL_SIZE, TOTAL_SIZE);
 baseLandGeo.rotateX(-Math.PI/2); // rotate to lie on the ground
 
 // MeshBasicMaterial just is a constant color
@@ -66,7 +66,7 @@ texture.repeat.set(12, 12);
 var waterMaterial = new THREE.MeshPhongMaterial({reflectivity: 0.3, color: 0x0066ff});
 var material = new THREE.MeshPhongMaterial({reflectivity: 0.2, map: texture, bumpMap: bumpTex, bumpScale: 0.1});
 
-// Given a BufferGeometry, apply the heightmap
+// Given a BufferGeometry, apply the (complete) heightmap
 // Modifies the geometry object, returns nothing
 function applyHeightmap(geometry, heightmap) {
     var vertices = geometry.attributes.position.array;
@@ -95,42 +95,22 @@ function applyPartialHeightmap(geometry, heightmap, startX, startZ) {
 
 var chunks = {};
 
-
 function chunkId(chunk) {
     return chunk.x + "," + chunk.z;
 }
 
 var CHUNK_SIZE = SIZE * LENGTH_PER_POINT;
 function createChunk(x, z, adjChunks) {
-    var geometry = baseLandGeo.clone();
-    // applyHeightmap(geometry, perlinHeightMap(HEIGHTMAP_SCALE, x, z));
-
     var heightmap = heightMap(HEIGHTMAP_SCALE, x, z, adjChunks);
-    applyPartialHeightmap(geometry, heightmap, 0, 0);
-    geometry.computeVertexNormals();
-
-    var waterGeo = waterBaseGeo.clone();
-    applyHeightmap(waterGeo, perlinHeightMap(HEIGHTMAP_SCALE, x+9, z+9, true));
-    waterGeo.computeVertexNormals();
-
-    var land = new THREE.Mesh(geometry, material);
-    var water = new THREE.Mesh(waterGeo, waterMaterial);
-
-    land.position.x = x * CHUNK_SIZE;
-    land.position.z = z * CHUNK_SIZE;
-    water.position.x = x * CHUNK_SIZE;
-    water.position.z = z * CHUNK_SIZE;
+    var waterheight = perlinHeightMap(HEIGHTMAP_SCALE, x+9, z+9, true);
 
     var chunk = {
-        land: land,
-        water: water,
         heightmap: heightmap,
+        waterheight: waterheight,
         x: x,
         z: z,
     };
 
-    // scene.add(chunk.land);
-    // scene.add(chunk.water);
     chunks[chunkId(chunk)] = chunk;
     console.log("Created chunk at " + chunkId(chunk));
 
@@ -138,15 +118,11 @@ function createChunk(x, z, adjChunks) {
 }
 
 function deleteChunk(chunk) {
-    scene.remove(chunk.land);
-    scene.remove(chunk.water);
-
     console.log("Removed chunk at " + chunkId(chunk));
     delete chunks[chunkId(chunk)];
 }
 
-// var chunk = createChunk(0, 0, []);
-var landmesh;
+var landmesh, watermesh;
 
 camera.position.x = 0;
 camera.position.y = 50;
@@ -179,32 +155,45 @@ function updateChunks(pos) {
     ]
 
     var landgeo = baseLandGeo.clone();
+    var watergeo = baseWaterGeo.clone();
     for (var ind of mustExist) {
         var chunk = chunks[ind[0] + "," + ind[1]];
         var adjChunks = getAdjacentChunks(ind[0], ind[1]);
         if (!chunk) {
+            // run perlin noise/diamond square to generate terrain
             chunk = createChunk(ind[0], ind[1], adjChunks);
         }
         
         if (changedChunk) {
+            // rewrite the heightmap for the 3x3 chunk grid
             var x = ind[0] - xind + 1;
             var z = ind[1] - zind + 1;
             applyPartialHeightmap(landgeo, chunk.heightmap, z, x);
+            applyPartialHeightmap(watergeo, chunk.waterheight, z, x);
         }
     }
     
     if (changedChunk) {
+        // re-render the 3x3 chunk grid
         if (landmesh) scene.remove(landmesh);
         landgeo.computeVertexNormals();
         landmesh = new THREE.Mesh(landgeo, material);
-        landmesh.position.x = xind * CHUNK_SIZE;
-        landmesh.position.z = zind * CHUNK_SIZE;
+        landmesh.position.x = xind * (CHUNK_SIZE);
+        landmesh.position.z = zind * (CHUNK_SIZE);
         scene.add(landmesh);
+        
+        if (watermesh) scene.remove(watermesh);
+        watergeo.computeVertexNormals();
+        watermesh = new THREE.Mesh(watergeo, waterMaterial);
+        watermesh.position.x = xind * (CHUNK_SIZE);
+        watermesh.position.z = zind * (CHUNK_SIZE);
+        scene.add(watermesh);
     }
 
+    // free from memory chunks that are distance 3 away
     for (var key in chunks) {
         var chunk = chunks[key];
-        if (Math.abs(chunk.x - xind) > 2 || Math.abs(chunk.z - zind) > 2) {
+        if (Math.abs(chunk.x - xind) > 3 || Math.abs(chunk.z - zind) > 3) {
             deleteChunk(chunk);
         }
     }
