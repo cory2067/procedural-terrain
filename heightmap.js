@@ -52,10 +52,12 @@ function getHeight(x, z, water) {
     out += perlin(x, z, 10, 7);
     out += perlin(x, z, 5, 17);
   } else {
-    out += perlin(x, z, 1, 50);
+    out += perlin(x, z, 1.2, 50);
   }
   return out;
 }
+
+var roughness = 0.8;
 
 // Performs diamondSquare at the resolution level defined by size
 function diamondSquare(heights, size) {
@@ -64,7 +66,6 @@ function diamondSquare(heights, size) {
   }
 
   var half = size / 2;
-  var roughness = 0.8;
   var scale = roughness * size;
   var max = heights.length;
 

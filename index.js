@@ -1,4 +1,4 @@
-var GENERATOR = 1; //0: diamond square, 1: perlin noise
+var GENERATOR = 0; //0: diamond square, 1: perlin noise
 
 // Width in heightmap points
 var HEIGHTMAP_SCALE = 5;
@@ -22,7 +22,7 @@ scene.fog = new THREE.Fog(fogColor, 72, 128);
 var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
 var controls = new THREE.FirstPersonControls(camera);
 var clock = new THREE.Clock(); // used for computing deltas, for first person speed
-controls.movementSpeed = 10;
+controls.movementSpeed = 15;
 controls.lookSpeed = 0.1;
 
 // Create a renderer and attach it to the DOM

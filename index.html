@@ -4,16 +4,34 @@
 		<meta charset=utf-8>
 		<title>My first three.js app</title>
 		<style>
-			body { margin: 0; }
+			body { margin: 0; overflow: hidden }
 			canvas { width: 100%; height: 100% }
+            #controls {
+                position: absolute;
+                height: 200px;
+                width: 800px;
+                top: 0px; 
+                z-index: 1000;
+            }
+            p {
+                line-height: 8px;
+                padding-left: 8px;
+            }
 		</style>
 	</head>
 	<body>
+        <div id="controls">
+            <p>Generating with <span id="method" style="font-weight: bold">Diamond-Square</span></p>
+            <p id="dsq">Diamond-Square Rougness: <span id="roughness">0.8</span></p>
+            <p id="perlin">Perlin Noise Seed: <span id="seed">0</span></p>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 		<script src="https://threejs.org/build/three.js"></script>
 		<script src="https://github.com/mrdoob/three.js/blob/master/examples/js/WebGL.js"></script>
 		<script src="lib/FirstPersonControls.js"></script>
 		<script src="lib/perlin.js"></script>
 		<script src="heightmap.js"></script>
 		<script src="index.js"></script>
+		<script src="controls.js"></script>
 	</body>
 </html>
