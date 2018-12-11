@@ -6,7 +6,6 @@ function forceReload() {
 
 var seed = 0;
 $(function() {
-    $("#perlin").toggle();
     $(document).keypress(function (e) {
         switch (e.which) {
             case 109: // m

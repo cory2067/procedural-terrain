@@ -22,8 +22,14 @@
 	<body>
         <div id="controls">
             <p>Generating with <span id="method" style="font-weight: bold">Diamond-Square</span></p>
-            <p id="dsq">Diamond-Square Rougness: <span id="roughness">0.8</span></p>
-            <p id="perlin">Perlin Noise Seed: <span id="seed">0</span></p>
+            <div id="dsq">
+                <p>Diamond-Square Rougness: <span id="roughness">0.8</span></p>
+                <p>Change to Perlin Noise with m, change roughness with +/-</p>
+            </div>
+            <div id="perlin" style="display: none">
+                <p>Perlin Noise Seed: <span id="seed">0</span></p>
+                <p>Change to Diamond-Square with m, change seed with +/-</p>
+            </div>
         </div>
         <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 		<script src="https://threejs.org/build/three.js"></script>
